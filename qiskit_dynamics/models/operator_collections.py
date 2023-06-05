@@ -233,10 +233,7 @@ class SparseOperatorCollection(BaseOperatorCollection):
 
     @property
     def operators(self) -> List[csr_matrix]:
-        if self._operators is None:
-            return None
-
-        return list(self._operators)
+        return None if self._operators is None else list(self._operators)
 
     @operators.setter
     def operators(self, new_operators: List[csr_matrix]):
@@ -307,7 +304,9 @@ class SparseOperatorCollection(BaseOperatorCollection):
                                 operators cannot be evaluated."""
             )
 
-        raise QiskitError(self.__class__.__name__ + """  cannot evaluate RHS for y.ndim > 3.""")
+        raise QiskitError(
+            f"""{self.__class__.__name__}  cannot evaluate RHS for y.ndim > 3."""
+        )
 
 
 class JAXSparseOperatorCollection(BaseOperatorCollection):
@@ -375,7 +374,9 @@ class JAXSparseOperatorCollection(BaseOperatorCollection):
                 y = y.data
             return Array(jsparse_matmul(self.evaluate(signal_values), y))
 
-        raise QiskitError(self.__class__.__name__ + """  cannot evaluate RHS for y.ndim >= 3.""")
+        raise QiskitError(
+            f"""{self.__class__.__name__}  cannot evaluate RHS for y.ndim >= 3."""
+        )
 
 
 class BaseLindbladOperatorCollection(ABC):
@@ -1196,10 +1197,11 @@ class JAXSparseLindbladCollection(BaseLindbladOperatorCollection):
                     axes=(-1, -3),
                 )
 
-            out = left_mult_contribution + right_mult_contribution + both_mult_contribution
-
-            return out
-        # if just hamiltonian
+            return (
+                left_mult_contribution
+                + right_mult_contribution
+                + both_mult_contribution
+            )
         elif hamiltonian_matrix is not None:
             return jsparse_matmul(hamiltonian_matrix, y) - jsparse_matmul(y, hamiltonian_matrix)
         else:
@@ -1334,7 +1336,7 @@ class BaseVectorizedLindbladCollection(BaseLindbladOperatorCollection, BaseOpera
             self._static_operator = self._vec_static_hamiltonian + self._vec_static_dissipators_sum
         elif self._static_hamiltonian is None and self._static_dissipators is not None:
             self._static_operator = self._vec_static_dissipators_sum
-        elif self._static_hamiltonian is not None and self._static_dissipators is None:
+        elif self._static_hamiltonian is not None:
             self._static_operator = self._vec_static_hamiltonian
         else:
             self._static_operator = None
@@ -1345,9 +1347,9 @@ class BaseVectorizedLindbladCollection(BaseLindbladOperatorCollection, BaseOpera
             self._operators = np.append(
                 self._vec_hamiltonian_operators, self._vec_dissipator_operators, axis=0
             )
-        elif self._hamiltonian_operators is not None and self._dissipator_operators is None:
+        elif self._hamiltonian_operators is not None:
             self._operators = self._vec_hamiltonian_operators
-        elif self._hamiltonian_operators is None and self._dissipator_operators is not None:
+        elif self._dissipator_operators is not None:
             self._operators = self._vec_dissipator_operators
         else:
             self._operators = None
@@ -1358,12 +1360,9 @@ class BaseVectorizedLindbladCollection(BaseLindbladOperatorCollection, BaseOpera
         """Concatenate hamiltonian and linblad signals."""
         if self._hamiltonian_operators is not None and self._dissipator_operators is not None:
             return np.append(ham_sig_vals, dis_sig_vals, axis=-1)
-        if self._hamiltonian_operators is not None and self._dissipator_operators is None:
+        if self._hamiltonian_operators is not None:
             return ham_sig_vals
-        if self._hamiltonian_operators is None and self._dissipator_operators is not None:
-            return dis_sig_vals
-
-        return None
+        return dis_sig_vals if self._dissipator_operators is not None else None
 
     def evaluate(self, ham_sig_vals: Union[None, Array], dis_sig_vals: Union[None, Array]) -> Array:
         r"""Compute and return :math:`\Lambda(c_1, c_2, \cdot)`.

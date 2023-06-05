@@ -269,7 +269,7 @@ class InstructionToSignals:
                 sig.start_time,
                 new_freq,
                 sig.phase,
-                sig.name + "_i",
+                f"{sig.name}_i",
             )
             sig_q = DiscreteSignal(
                 sig.dt,
@@ -277,7 +277,7 @@ class InstructionToSignals:
                 sig.start_time,
                 new_freq,
                 sig.phase,
-                sig.name + "_q",
+                f"{sig.name}_q",
             )
 
             new_signals += [sig_i, sig_q]

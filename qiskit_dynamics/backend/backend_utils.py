@@ -187,9 +187,7 @@ def _get_subsystem_probabilities(probability_tensor: np.ndarray, sub_idx: int) -
     ndim = probability_tensor.ndim
     sub_axis = ndim - 1 - sub_idx
 
-    # Get sum axis for marginalized subsystems
-    sum_axis = tuple(i for i in range(ndim) if i != sub_axis)
-    if sum_axis:
+    if sum_axis := tuple(i for i in range(ndim) if i != sub_axis):
         probability_tensor = probability_tensor.sum(axis=sum_axis)
 
     return probability_tensor

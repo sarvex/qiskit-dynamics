@@ -291,19 +291,18 @@ class Solver:
                         channel_carrier_freqs."""
                     )
 
-            if len(channel_carrier_freqs) == 0:
+            if not channel_carrier_freqs:
                 channel_carrier_freqs = None
             self._channel_carrier_freqs = channel_carrier_freqs
 
-            if dt is not None:
-                self._dt = dt
-
-                self._schedule_converter = InstructionToSignals(
-                    dt=self._dt, carriers=self._channel_carrier_freqs, channels=self._all_channels
-                )
-            else:
+            if dt is None:
                 raise QiskitError("dt must be specified if channel information is provided.")
 
+            self._dt = dt
+
+            self._schedule_converter = InstructionToSignals(
+                dt=self._dt, carriers=self._channel_carrier_freqs, channels=self._all_channels
+            )
         # setup model
         model = None
         if static_dissipators is None and dissipator_operators is None:
@@ -545,10 +544,7 @@ class Solver:
         # ensure model signals are empty
         self._set_new_signals(None)
 
-        if multiple_sims is False:
-            return all_results[0]
-
-        return all_results
+        return all_results[0] if multiple_sims is False else all_results
 
     def _solve_list(
         self,
@@ -678,11 +674,10 @@ class Solver:
             if self._rwa_signal_map:
                 signals = self._rwa_signal_map(signals)
             self.model.signals = signals
+        elif isinstance(self.model, LindbladModel):
+            self.model.signals = (None, None)
         else:
-            if isinstance(self.model, LindbladModel):
-                self.model.signals = (None, None)
-            else:
-                self.model.signals = None
+            self.model.signals = None
 
     def _schedule_to_signals(self, schedule: Schedule):
         """Convert a schedule into the signal format required by the model."""
@@ -861,9 +856,7 @@ def _signals_to_list(signals):
     elif isinstance(signals, list) and isinstance(signals[0], (list, SignalList)):
         # multiple Hamiltonian signals lists
         was_list = True
-    elif isinstance(signals, SignalList) or (
-        isinstance(signals, list) and not isinstance(signals[0], (list, SignalList))
-    ):
+    elif isinstance(signals, (SignalList, list)):
         # single Hamiltonian signals list
         signals = [signals]
     else:
@@ -881,22 +874,25 @@ def organize_signals_to_channels(
     """
 
     if model_class == HamiltonianModel:
-        if hamiltonian_channels is not None:
-            return [all_signals[all_channels.index(chan)] for chan in hamiltonian_channels]
-        else:
-            return None
-    else:
-        hamiltonian_signals = None
-        dissipator_signals = None
-        if hamiltonian_channels is not None:
-            hamiltonian_signals = [
-                all_signals[all_channels.index(chan)] for chan in hamiltonian_channels
+        return (
+            [
+                all_signals[all_channels.index(chan)]
+                for chan in hamiltonian_channels
             ]
-        if dissipator_channels is not None:
-            dissipator_signals = [
-                all_signals[all_channels.index(chan)] for chan in dissipator_channels
-            ]
-        return (hamiltonian_signals, dissipator_signals)
+            if hamiltonian_channels is not None
+            else None
+        )
+    hamiltonian_signals = None
+    dissipator_signals = None
+    if hamiltonian_channels is not None:
+        hamiltonian_signals = [
+            all_signals[all_channels.index(chan)] for chan in hamiltonian_channels
+        ]
+    if dissipator_channels is not None:
+        dissipator_signals = [
+            all_signals[all_channels.index(chan)] for chan in dissipator_channels
+        ]
+    return (hamiltonian_signals, dissipator_signals)
 
 
 def _nested_ndim(x):

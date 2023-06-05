@@ -270,7 +270,7 @@ class GeneratorModel(BaseGeneratorModel):
     def signals(self, signals: Union[SignalList, List[Signal]]):
         if signals is None:
             self._signals = None
-        elif signals is not None and self.operators is None:
+        elif self.operators is None:
             raise QiskitError("Signals must be None if operators is None.")
         else:
             # if signals is a list, instantiate a SignalList
@@ -462,19 +462,19 @@ def transfer_static_operator_between_frames(
             operator_in_frame_basis=True,
             return_in_frame_basis=False,
         )
-    else:
-        # "add" the frame operator to 0
+    elif issparse(static_operator):
         if old_frame.frame_operator is not None:
-            if issparse(static_operator):
-                if old_frame.frame_operator.ndim == 1:
-                    static_operator = diags(old_frame.frame_operator, format="csr")
-                else:
-                    static_operator = csr_matrix(old_frame.frame_operator)
-            else:
-                if old_frame.frame_operator.ndim == 1:
-                    static_operator = np.diag(old_frame.frame_operator)
-                else:
-                    static_operator = old_frame.frame_operator
+            static_operator = (
+                diags(old_frame.frame_operator, format="csr")
+                if old_frame.frame_operator.ndim == 1
+                else csr_matrix(old_frame.frame_operator)
+            )
+    elif old_frame.frame_operator is not None:
+        static_operator = (
+            np.diag(old_frame.frame_operator)
+            if old_frame.frame_operator.ndim == 1
+            else old_frame.frame_operator
+        )
     # transform into new frame basis, and add the new frame operator
     if static_operator is not None:
         static_operator = new_frame.generator_into_frame(
@@ -483,14 +483,12 @@ def transfer_static_operator_between_frames(
             operator_in_frame_basis=False,
             return_in_frame_basis=True,
         )
-    else:
-        # "subtract" the frame operator from 0
-        if new_frame.frame_operator is not None:
-            if issparse(static_operator):
-                static_operator = -diags(new_frame.frame_diag, format="csr")
-            else:
-                static_operator = -np.diag(new_frame.frame_diag)
-
+    elif new_frame.frame_operator is not None:
+        static_operator = (
+            -diags(new_frame.frame_diag, format="csr")
+            if issparse(static_operator)
+            else -np.diag(new_frame.frame_diag)
+        )
     return static_operator
 
 

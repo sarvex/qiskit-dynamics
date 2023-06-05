@@ -247,7 +247,7 @@ class LindbladModel(BaseGeneratorModel):
         # set Hamiltonian signals
         if hamiltonian_signals is None:
             self._hamiltonian_signals = None
-        elif hamiltonian_signals is not None and self.hamiltonian_operators is None:
+        elif self.hamiltonian_operators is None:
             raise QiskitError("Hamiltonian signals must be None if hamiltonian_operators is None.")
         else:
             # if signals is a list, instantiate a SignalList
@@ -273,7 +273,7 @@ class LindbladModel(BaseGeneratorModel):
         # set dissipator signals
         if dissipator_signals is None:
             self._dissipator_signals = None
-        elif dissipator_signals is not None and self.dissipator_operators is None:
+        elif self.dissipator_operators is None:
             raise QiskitError("Dissipator signals must be None if dissipator_operators is None.")
         else:
             # if signals is a list, instantiate a SignalList
@@ -686,18 +686,20 @@ def construct_lindblad_operator_collection(
 
     if evaluation_mode == "dense":
         CollectionClass = DenseLindbladCollection
-    elif evaluation_mode == "sparse":
-        if Array.default_backend() == "jax":
-            CollectionClass = JAXSparseLindbladCollection
-        else:
-            CollectionClass = SparseLindbladCollection
     elif evaluation_mode == "dense_vectorized":
         CollectionClass = DenseVectorizedLindbladCollection
+    elif evaluation_mode == "sparse":
+        CollectionClass = (
+            JAXSparseLindbladCollection
+            if Array.default_backend() == "jax"
+            else SparseLindbladCollection
+        )
     elif evaluation_mode == "sparse_vectorized":
-        if Array.default_backend() == "jax":
-            CollectionClass = JAXSparseVectorizedLindbladCollection
-        else:
-            CollectionClass = SparseVectorizedLindbladCollection
+        CollectionClass = (
+            JAXSparseVectorizedLindbladCollection
+            if Array.default_backend() == "jax"
+            else SparseVectorizedLindbladCollection
+        )
     else:
         raise NotImplementedError(
             f"Evaluation mode '{evaluation_mode}' is not supported. See "

@@ -162,11 +162,7 @@ class ArrayPolynomial:
             else:
                 self._array_coefficients = None
 
-            if constant_term is not None:
-                self._constant_term = Array(constant_term)
-            else:
-                self._constant_term = None
-
+            self._constant_term = None if constant_term is None else Array(constant_term)
             self._compute_monomials = _get_monomial_compute_function_jax(self._monomial_labels)
         else:
             if constant_term is not None:
@@ -309,13 +305,12 @@ class ArrayPolynomial:
         if self.constant_term is not None:
             constant_term = self.constant_term.sum(axis=axis, dtype=dtype)
 
-        # axis must be shifted for array coefficients
         if self.array_coefficients is not None:
             if self.ndim == 0 and axis is None:
                 coefficients = np.array(self.array_coefficients, dtype=dtype)
             else:
                 if axis is None:
-                    axis = tuple(k for k in range(1, self.ndim + 1))
+                    axis = tuple(range(1, self.ndim + 1))
                 elif isinstance(axis, int):
                     axis = axis + 1
                 elif isinstance(axis, tuple):
@@ -333,12 +328,9 @@ class ArrayPolynomial:
     def real(self) -> "ArrayPolynomial":
         """Return the real part of self."""
 
-        constant_term = None
         array_coefficients = None
 
-        if self.constant_term is not None:
-            constant_term = self.constant_term.real
-
+        constant_term = None if self.constant_term is None else self.constant_term.real
         if self.array_coefficients is not None:
             array_coefficients = self.array_coefficients.real
 
@@ -456,11 +448,7 @@ class ArrayPolynomial:
         return self.add(other)
 
     def __neg__(self) -> "ArrayPolynomial":
-        constant_term = None
-        if self.constant_term is not None:
-            # pylint: disable=invalid-unary-operand-type
-            constant_term = -self.constant_term
-
+        constant_term = -self.constant_term if self.constant_term is not None else None
         array_coefficients = None
         if self.array_coefficients is not None:
             # pylint: disable=invalid-unary-operand-type
@@ -510,12 +498,9 @@ class ArrayPolynomial:
 
     def __getitem__(self, idx) -> "ArrayPolynomial":
         """Index the ArrayPolynomial similarly to an array."""
-        constant_term = None
         array_coefficients = None
 
-        if self.constant_term is not None:
-            constant_term = self.constant_term[idx]
-
+        constant_term = None if self.constant_term is None else self.constant_term[idx]
         if self.array_coefficients is not None:
             array_coefficients = self.array_coefficients[(slice(None),) + idx]
 
@@ -529,10 +514,10 @@ class ArrayPolynomial:
         """Number of terms in the polynomial."""
         num_terms = 0
         if self.array_coefficients is not None:
-            num_terms = num_terms + len(self.array_coefficients)
+            num_terms += len(self.array_coefficients)
 
         if self.constant_term is not None:
-            num_terms = num_terms + 1
+            num_terms += 1
 
         return num_terms
 
@@ -576,7 +561,7 @@ def _get_monomial_compute_function(multisets: List[Multiset]) -> Callable:
     Returns:
         Callable: Vectorized function for computing monomials.
     """
-    if multisets is None or len(multisets) == 0:
+    if multisets is None or not multisets:
         return lambda c: None
 
     complete_multiset_list = _get_all_submultisets(multisets)
@@ -688,18 +673,17 @@ def _get_recursive_monomial_rule(complete_multisets: List) -> Tuple:
     for multiset in complete_multisets:
         if len(multiset) == 1:
             first_order_terms.append(multiset[0])
+        elif multiset[0] == current_left and len(multiset) == current_len:
+            current_right_list.append(multiset[1:])
+
         else:
-            if multiset[0] != current_left or len(multiset) != current_len:
-                current_len = len(multiset)
-                if current_left != -1:
-                    left_terms.append(current_left)
-                    right_terms.append(current_right_list)
+            current_len = len(multiset)
+            if current_left != -1:
+                left_terms.append(current_left)
+                right_terms.append(current_right_list)
 
-                current_left = multiset[0]
-                current_right_list = [multiset[1:]]
-            else:
-                current_right_list.append(multiset[1:])
-
+            current_left = multiset[0]
+            current_right_list = [multiset[1:]]
     # if current_left is still -1, then only first order terms exist
     if current_left == -1:
         return np.array(first_order_terms), [0, len(first_order_terms)], [], [], []
@@ -720,10 +704,7 @@ def _get_recursive_monomial_rule(complete_multisets: List) -> Tuple:
     for left_term, right_term in zip(left_terms, right_terms):
         left_indices.append(complete_multisets.index([left_term]))
 
-        right_index_list = []
-        for term in right_term:
-            right_index_list.append(complete_multisets.index(term))
-
+        right_index_list = [complete_multisets.index(term) for term in right_term]
         right_indices.append(np.array(right_index_list, dtype=int))
 
     # set up index updating ranges
@@ -803,12 +784,11 @@ def _array_polynomial_distributive_binary_op(
             rule_indices.append([-1, idx])
 
         if len(multiset) > 1:
-            for I, J in zip(*_submultisets_and_complements(multiset)):
-                if I in ap1.monomial_labels and J in ap2.monomial_labels:
-                    rule_indices.append(
-                        [ap1.monomial_labels.index(I), ap2.monomial_labels.index(J)]
-                    )
-
+            rule_indices.extend(
+                [ap1.monomial_labels.index(I), ap2.monomial_labels.index(J)]
+                for I, J in zip(*_submultisets_and_complements(multiset))
+                if I in ap1.monomial_labels and J in ap2.monomial_labels
+            )
         # if non-empty,
         if rule_indices:
             operation_rule.append((np.ones(len(rule_indices)), np.array(rule_indices)))
@@ -853,7 +833,7 @@ def _array_polynomial_addition(
     """Add two ArrayPolynomials."""
 
     for a, b in zip(ap1.shape[::-1], ap2.shape[::-1]):
-        if not (a == 1 or b == 1 or a == b):
+        if a != 1 and b != 1 and a != b:
             raise QiskitError(
                 "ArrayPolynomial addition requires shapes be broadcastable to eachother."
             )

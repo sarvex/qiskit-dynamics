@@ -196,11 +196,7 @@ class DynamicsBackend(BackendV2):
             self.set_options(meas_map=meas_map)
 
         # self._target = target or Target() doesn't work as bool(target) can be False
-        if target is None:
-            target = Target()
-        else:
-            target = copy.copy(target)
-
+        target = Target() if target is None else copy.copy(target)
         # add default simulator measure instructions
         measure_properties = {}
         instruction_schedule_map = target.instruction_schedule_map()
@@ -428,35 +424,26 @@ class DynamicsBackend(BackendV2):
         experiment_names = [schedule.name for schedule in schedules]
         experiment_metadatas = [schedule.metadata for schedule in schedules]
         rng = np.random.default_rng(self.options.seed_simulator)
-        experiment_results = []
-        for (
-            experiment_name,
-            solver_result,
-            measurement_subsystems,
-            memory_slot_indices,
-            num_memory_slots,
-            experiment_metadata,
-        ) in zip(
-            experiment_names,
-            solver_results,
-            measurement_subsystems_list,
-            memory_slot_indices_list,
-            num_memory_slots_list,
-            experiment_metadatas,
-        ):
-            experiment_results.append(
-                self.options.experiment_result_function(
-                    experiment_name,
-                    solver_result,
-                    measurement_subsystems,
-                    memory_slot_indices,
-                    num_memory_slots,
-                    self,
-                    seed=rng.integers(low=0, high=9223372036854775807),
-                    metadata=experiment_metadata,
-                )
+        experiment_results = [
+            self.options.experiment_result_function(
+                experiment_name,
+                solver_result,
+                measurement_subsystems,
+                memory_slot_indices,
+                num_memory_slots,
+                self,
+                seed=rng.integers(low=0, high=9223372036854775807),
+                metadata=experiment_metadata,
             )
-
+            for experiment_name, solver_result, measurement_subsystems, memory_slot_indices, num_memory_slots, experiment_metadata in zip(
+                experiment_names,
+                solver_results,
+                measurement_subsystems_list,
+                memory_slot_indices_list,
+                num_memory_slots_list,
+                experiment_metadatas,
+            )
+        ]
         # Construct full result object
         return Result(
             backend_name=self.name,
@@ -641,10 +628,7 @@ class DynamicsBackend(BackendV2):
             )
         backend_config = backend.configuration()
 
-        backend_defaults = None
-        if hasattr(backend, "defaults"):
-            backend_defaults = backend.defaults()
-
+        backend_defaults = backend.defaults() if hasattr(backend, "defaults") else None
         # get and parse Hamiltonian string dictionary
         if backend_target is not None:
             backend_num_qubits = backend_target.num_qubits
@@ -702,13 +686,13 @@ class DynamicsBackend(BackendV2):
 
             # Reduce control_channel_map based on which channels are in the model
             if bool(control_channel_map_backend):
-                control_channel_map = {}
-                for label, idx in control_channel_map_backend.items():
-                    if f"u{idx}" in hamiltonian_channels:
-                        control_channel_map[label] = idx
+                control_channel_map = {
+                    label: idx
+                    for label, idx in control_channel_map_backend.items()
+                    if f"u{idx}" in hamiltonian_channels
+                }
                 options["control_channel_map"] = control_channel_map
 
-        # build the solver
         if rotating_frame == "auto":
             if "dense" in evaluation_mode:
                 rotating_frame = static_hamiltonian
@@ -923,7 +907,7 @@ def _get_acquire_instruction_timings(
                 schedule_acquire_times.append(start_time)
 
         # validate
-        if len(schedule_acquire_times) == 0:
+        if not schedule_acquire_times:
             raise QiskitError(
                 "At least one measurement saving a a result in a MemorySlot "
                 "must be present in each schedule."

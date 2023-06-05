@@ -243,15 +243,15 @@ class Signal:
         data_type = "real"
         if function == "signal":
             y_vals = self(t_vals)
-            title = title or "Value of " + str(self)
+            title = title or f"Value of {str(self)}"
         elif function == "envelope":
             y_vals = self.envelope(t_vals)
             data_type = "complex"
-            title = title or "Envelope of " + str(self)
+            title = title or f"Envelope of {str(self)}"
         elif function == "complex_value":
             y_vals = self.complex_value(t_vals)
             data_type = "complex"
-            title = title or "Complex value of " + str(self)
+            title = title or f"Complex value of {str(self)}"
 
         legend = False
         if data_type == "complex":
@@ -512,10 +512,7 @@ class SignalCollection:
             sublist = operator.itemgetter(idx)(self.components)
 
         # at this point sublist should either be a single Signal, or a list of Signals
-        if isinstance(sublist, list):
-            return self.__class__(sublist)
-        else:
-            return sublist
+        return self.__class__(sublist) if isinstance(sublist, list) else sublist
 
     def __iter__(self):
         """Return iterator over component list."""
@@ -688,19 +685,18 @@ class DiscreteSignalSum(DiscreteSignal, SignalSum):
             name=name,
         )
 
-        # construct individual components so they can be accessed as in SignalSum
-        components = []
-        for sample_row, freq, phi in zip(self.samples.transpose(), carrier_freq, phase):
-            components.append(
-                DiscreteSignal(
-                    dt=self.dt,
-                    samples=sample_row,
-                    start_time=self.start_time,
-                    carrier_freq=freq,
-                    phase=phi,
-                )
+        components = [
+            DiscreteSignal(
+                dt=self.dt,
+                samples=sample_row,
+                start_time=self.start_time,
+                carrier_freq=freq,
+                phase=phi,
             )
-
+            for sample_row, freq, phi in zip(
+                self.samples.transpose(), carrier_freq, phase
+            )
+        ]
         self._components = components
 
     @classmethod
@@ -778,7 +774,9 @@ class DiscreteSignalSum(DiscreteSignal, SignalSum):
         """Enables numpy-style subscripting, as if this class were a 1d array."""
 
         if type(idx) == int and idx >= len(self):
-            raise IndexError("index out of range for DiscreteSignalSum of length " + str(len(self)))
+            raise IndexError(
+                f"index out of range for DiscreteSignalSum of length {len(self)}"
+            )
 
         samples = self.samples[:, idx]
         carrier_freqs = self.carrier_freq[idx]
@@ -902,9 +900,7 @@ def signal_add(sig1: Signal, sig2: Signal) -> SignalSum:
                 phase=phase,
             )
 
-    sig_sum = SignalSum(*(sig1.components + sig2.components))
-
-    return sig_sum
+    return SignalSum(*(sig1.components + sig2.components))
 
 
 def signal_multiply(sig1: Signal, sig2: Signal) -> SignalSum:

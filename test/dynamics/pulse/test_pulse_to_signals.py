@@ -67,7 +67,7 @@ class TestPulseToSignals(QiskitDynamicsTestCase):
         self.assertTrue(isinstance(signals[0], DiscreteSignal))
 
         samples = test_gaussian.get_waveform().samples
-        self.assertTrue(np.allclose(signals[1].samples[0 : len(samples)], samples))
+        self.assertTrue(np.allclose(signals[1].samples[:len(samples)], samples))
 
     def test_shift_phase_to_signals(self):
         """Test that a shift phase gives negative envelope."""

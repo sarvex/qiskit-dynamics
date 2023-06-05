@@ -83,10 +83,7 @@ class StateTypeConverter:
         """
         inner_type_spec = type_spec_from_instance(inner_y)
 
-        outer_type_spec = None
-        if outer_y is not None:
-            outer_type_spec = type_spec_from_instance(outer_y)
-
+        outer_type_spec = None if outer_y is None else type_spec_from_instance(outer_y)
         return cls(inner_type_spec, outer_type_spec, order)
 
     @classmethod
@@ -276,9 +273,10 @@ def vec_commutator(
     if isinstance(A, list) and issparse(A[0]):
         # taken to be 1d array of 2d sparse matrices
         sp_iden = sparse_identity(A[0].shape[-1], format="csr")
-        out = [-1j * (sparse_kron(sp_iden, mat) - sparse_kron(mat.T, sp_iden)) for mat in A]
-        return out
-
+        return [
+            -1j * (sparse_kron(sp_iden, mat) - sparse_kron(mat.T, sp_iden))
+            for mat in A
+        ]
     A = to_array(A)
     iden = Array(np.eye(A.shape[-1]))
     axes = list(range(A.ndim))
@@ -311,14 +309,15 @@ def vec_dissipator(
     if isinstance(L, list) and issparse(L[0]):
         # taken to be 1d array of 2d sparse matrices
         sp_iden = sparse_identity(L[0].shape[-1], format="csr")
-        out = [
+        return [
             sparse_kron(mat.conj(), mat)
             - 0.5
-            * (sparse_kron(sp_iden, mat.conj().T * mat) + sparse_kron(mat.T * mat.conj(), sp_iden))
+            * (
+                sparse_kron(sp_iden, mat.conj().T * mat)
+                + sparse_kron(mat.T * mat.conj(), sp_iden)
+            )
             for mat in L
         ]
-        return out
-
     iden = Array(np.eye(L.shape[-1]))
     axes = list(range(L.ndim))
 
@@ -343,13 +342,13 @@ def isinstance_qutip_qobj(obj):
     Returns:
         Bool: True if obj is qutip Qobj
     """
-    if (
-        type(obj).__name__ == "Qobj"
-        and hasattr(obj, "_data")
-        and type(obj._data).__name__ == "fast_csr_matrix"
-    ):
-        return True
-    return False
+    return bool(
+        (
+            type(obj).__name__ == "Qobj"
+            and hasattr(obj, "_data")
+            and type(obj._data).__name__ == "fast_csr_matrix"
+        )
+    )
 
 
 # pylint: disable=too-many-return-statements
@@ -369,11 +368,7 @@ def to_array(op: Union[Operator, Array, List[Operator], List[Array], spmatrix], 
         return op
 
     if isinstance(op, np.ndarray) and op.dtype != "O":
-        if Array.default_backend() in [None, "numpy"]:
-            return op
-        else:
-            return Array(op)
-
+        return op if Array.default_backend() in [None, "numpy"] else Array(op)
     if isinstance(op, Array):
         return op
 
@@ -385,15 +380,12 @@ def to_array(op: Union[Operator, Array, List[Operator], List[Array], spmatrix], 
 
     if isinstance(op, Iterable) and not no_iter:
         op = Array([to_array(sub_op, no_iter=True) for sub_op in op])
-    elif isinstance(op, Iterable) and no_iter:
+    elif isinstance(op, Iterable):
         return op
     else:
         op = Array(op)
 
-    if op.backend == "numpy":
-        return op.data
-    else:
-        return op
+    return op.data if op.backend == "numpy" else op
 
 
 # pylint: disable=too-many-return-statements

@@ -224,7 +224,7 @@ def solve_lmde_perturbation(
         )
 
     # clean and validate perturbation_labels, and setup expansion terms to compute
-    if expansion_method in ["dyson", "magnus"]:
+    if expansion_method in {"dyson", "magnus"}:
         if perturbation_labels is None:
             perturbation_labels = [Multiset({idx: 1}) for idx in range(len(perturbations))]
         else:
@@ -239,17 +239,17 @@ def solve_lmde_perturbation(
             expansion_order=expansion_order,
             expansion_labels=expansion_labels,
         )
-    elif expansion_method in ["dyson_like"]:
+    elif expansion_method in {"dyson_like"}:
         expansion_labels = _merge_list_expansion_order_labels(
             perturbation_num=len(perturbations),
             expansion_order=expansion_order,
             expansion_labels=expansion_labels,
         )
 
-    if expansion_method in ["dyson", "dyson_like"]:
+    if expansion_method in {"dyson", "dyson_like"}:
         dyson_like = expansion_method == "dyson_like"
-        if not Array.default_backend() == "jax":
-            return _solve_lmde_dyson(
+        return (
+            _solve_lmde_dyson(
                 perturbations=perturbations,
                 t_span=t_span,
                 dyson_terms=expansion_labels,
@@ -262,8 +262,8 @@ def solve_lmde_perturbation(
                 t_eval=t_eval,
                 **kwargs,
             )
-        else:
-            return _solve_lmde_dyson_jax(
+            if Array.default_backend() != "jax"
+            else _solve_lmde_dyson_jax(
                 perturbations=perturbations,
                 t_span=t_span,
                 dyson_terms=expansion_labels,
@@ -276,9 +276,10 @@ def solve_lmde_perturbation(
                 t_eval=t_eval,
                 **kwargs,
             )
+        )
     elif expansion_method == "magnus":
-        if not Array.default_backend() == "jax":
-            return _solve_lmde_magnus(
+        return (
+            _solve_lmde_magnus(
                 perturbations=perturbations,
                 t_span=t_span,
                 magnus_terms=expansion_labels,
@@ -289,8 +290,8 @@ def solve_lmde_perturbation(
                 t_eval=t_eval,
                 **kwargs,
             )
-        else:
-            return _solve_lmde_magnus_jax(
+            if Array.default_backend() != "jax"
+            else _solve_lmde_magnus_jax(
                 perturbations=perturbations,
                 t_span=t_span,
                 magnus_terms=expansion_labels,
@@ -301,6 +302,6 @@ def solve_lmde_perturbation(
                 t_eval=t_eval,
                 **kwargs,
             )
-
+        )
     # raise error if none apply
     raise QiskitError(f"expansion_method {expansion_method} not supported.")

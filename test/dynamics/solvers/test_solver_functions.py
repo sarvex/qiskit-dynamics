@@ -54,10 +54,7 @@ class TestSolverMethod(ABC, QiskitDynamicsTestCase):
         # simple generator/RHS
         # pylint: disable=unused-argument
         def basic_rhs(t, y=None):
-            if y is None:
-                return op
-            else:
-                return op @ y
+            return op if y is None else op @ y
 
         self.basic_rhs = basic_rhs
 
@@ -101,10 +98,7 @@ class TestSolverMethod(ABC, QiskitDynamicsTestCase):
         # simulate directly out of frame
         def pseudo_random_rhs(t, y=None):
             op = static_operator + self.pseudo_random_signal(t) * operators[0]
-            if y is None:
-                return op
-            else:
-                return op @ y
+            return op if y is None else op @ y
 
         self.pseudo_random_rhs = pseudo_random_rhs
 
@@ -369,10 +363,7 @@ class Testlanczos_diag(TestSolverMethod):
         def pseudo_random_rhs(t, y=None):
             op = self.static_operator + self.pseudo_random_signal(t).data * self.operators[0]
             op = -1j * op
-            if y is None:
-                return op
-            else:
-                return op @ y
+            return op if y is None else op @ y
 
         self.pseudo_random_rhs = pseudo_random_rhs
 

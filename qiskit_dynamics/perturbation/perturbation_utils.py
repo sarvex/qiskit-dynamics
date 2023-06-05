@@ -79,19 +79,16 @@ def _merge_multiset_expansion_order_labels(
             perturbation_label = Multiset(perturbation_label)
             _validate_non_negative_ints(perturbation_label)
             unique_labels = unique_labels.union(perturbation_label.distinct_elements())
-    unique_labels = list(unique_labels)
-    unique_labels.sort()
-
+    unique_labels = sorted(unique_labels)
     # get all possible counts for multisets of a given size with a given number of labels
     all_multiset_counts = _ordered_partitions(expansion_order, len(unique_labels))
 
-    # create all such multisets
-    output_multisets = []
-    for multiset_count in all_multiset_counts:
-        output_multisets.append(Multiset(dict(zip(unique_labels, multiset_count))))
-
+    output_multisets = [
+        Multiset(dict(zip(unique_labels, multiset_count)))
+        for multiset_count in all_multiset_counts
+    ]
     if expansion_labels is not None:
-        output_multisets = output_multisets + expansion_labels
+        output_multisets += expansion_labels
 
     return _clean_multisets(output_multisets)
 

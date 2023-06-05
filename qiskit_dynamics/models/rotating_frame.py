@@ -143,10 +143,7 @@ class RotatingFrame:
             Array: The state in the frame basis.
         """
         y = to_numeric_matrix_type(y)
-        if self.frame_basis_adjoint is None:
-            return y
-
-        return self.frame_basis_adjoint @ y
+        return y if self.frame_basis_adjoint is None else self.frame_basis_adjoint @ y
 
     def state_out_of_frame_basis(self, y: Array) -> Array:
         r"""Take a state out of the frame basis, i.e. ``return self.frame_basis @ y``.
@@ -158,10 +155,7 @@ class RotatingFrame:
             Array: The state in the frame basis.
         """
         y = to_numeric_matrix_type(y)
-        if self.frame_basis is None:
-            return y
-
-        return self.frame_basis @ y
+        return y if self.frame_basis is None else self.frame_basis @ y
 
     def operator_into_frame_basis(
         self,
@@ -323,12 +317,8 @@ class RotatingFrame:
         op_to_add_in_fb = to_numeric_matrix_type(op_to_add_in_fb)
 
         if vectorized_operators:
-            # If passing vectorized operator, undo vectorization temporarily
             if self._frame_operator is None:
-                if op_to_add_in_fb is None:
-                    return operator
-                else:
-                    return operator + op_to_add_in_fb
+                return operator if op_to_add_in_fb is None else operator + op_to_add_in_fb
             if len(operator.shape) == 2:
                 operator = operator.T
             operator = operator.reshape(operator.shape[:-1] + (self.dim, self.dim), order="F")
@@ -336,14 +326,12 @@ class RotatingFrame:
         if self._frame_operator is None:
             if op_to_add_in_fb is None:
                 return operator
-            else:
-                if op_to_add_in_fb is not None:
-                    if issparse(operator):
-                        op_to_add_in_fb = csr_matrix(op_to_add_in_fb)
-                    elif type(operator).__name__ == "BCOO":
-                        op_to_add_in_fb = to_BCOO(op_to_add_in_fb)
+            if issparse(operator):
+                op_to_add_in_fb = csr_matrix(op_to_add_in_fb)
+            elif type(operator).__name__ == "BCOO":
+                op_to_add_in_fb = to_BCOO(op_to_add_in_fb)
 
-                return operator + op_to_add_in_fb
+            return operator + op_to_add_in_fb
 
         out = operator
 

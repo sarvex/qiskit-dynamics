@@ -92,9 +92,7 @@ def diffrax_solver(
 
     ys = jnp.swapaxes(r2c(jnp.swapaxes(ys, 0, 1)), 0, 1)
 
-    results_out = OdeResult(t=ts, y=Array(ys, backend="jax", dtype=complex), **sol_dict)
-
-    return results_out
+    return OdeResult(t=ts, y=Array(ys, backend="jax", dtype=complex), **sol_dict)
 
 
 def real_rhs(rhs):

@@ -179,7 +179,7 @@ def solve_ode(
     if method not in ODE_METHODS and not (
         (isinstance(method, type) and (issubclass(method, OdeSolver))) or _is_diffrax_method(method)
     ):
-        raise QiskitError("Method " + str(method) + " not supported by solve_ode.")
+        raise QiskitError(f"Method {str(method)} not supported by solve_ode.")
 
     y0 = Array(y0)
 

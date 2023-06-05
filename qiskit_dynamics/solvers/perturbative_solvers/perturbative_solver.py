@@ -105,10 +105,7 @@ class _PerturbativeSolver(ABC):
                 self._solve(t0=args[0], n_steps=args[1], y0=args[2], signals=args[3])
             )
 
-        if multiple_sims is False:
-            return all_results[0]
-
-        return all_results
+        return all_results[0] if multiple_sims is False else all_results
 
     @abstractmethod
     def _solve(self, t0: float, n_steps: int, y0: Array, signals: List[Signal]) -> OdeResult:
@@ -211,9 +208,7 @@ def _signals_to_list(signals):
     elif isinstance(signals, list) and isinstance(signals[0], (list, SignalList)):
         # multiple lists
         was_list = True
-    elif isinstance(signals, SignalList) or (
-        isinstance(signals, list) and not isinstance(signals[0], (list, SignalList))
-    ):
+    elif isinstance(signals, (SignalList, list)):
         # single signals list
         signals = [signals]
     else:

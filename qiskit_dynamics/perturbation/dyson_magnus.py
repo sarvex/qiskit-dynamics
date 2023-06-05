@@ -258,11 +258,7 @@ def _solve_lmde_dyson_jax(
 
         generator = default_generator
 
-    if y0 is None:
-        y0 = jnp.eye(mat_dim, dtype=complex)
-    else:
-        y0 = Array(y0).data
-
+    y0 = jnp.eye(mat_dim, dtype=complex) if y0 is None else Array(y0).data
     # ensure perturbations and generator to return raw jax arrays
     def func_transform(f):
         def new_func(t):
@@ -527,15 +523,12 @@ def _get_dyson_like_lmult_rule(
             l_idx = generator_indices.index(term[0])
             lmult_rule.append((np.array([1.0, 1.0]), np.array([[-1, term_idx], [l_idx, -1]])))
         else:
-            # self multiplied by generator
-            lmult_indices = [[-1, term_idx]]
             # the left index is the first entry in term
             # check if it is required before adding
 
             l_idx = generator_indices.index(term[0])
             r_idx = complete_dyson_indices.index(term[1:])
-            lmult_indices.append([l_idx, r_idx])
-
+            lmult_indices = [[-1, term_idx], [l_idx, r_idx]]
             lmult_rule.append(
                 (np.ones(len(lmult_indices), dtype=float), np.array(lmult_indices, dtype=int))
             )
@@ -744,17 +737,20 @@ def _q_product_rule(q_term: Tuple, oc_q_term_list: List[Tuple]) -> List:
 
     sym_index, q_term_order = q_term
     q_term_idx = oc_q_term_list.index(q_term)
-    q_term_len = len(sym_index)
-
     if q_term_order == 1:
+        q_term_len = len(sym_index)
+
         # if the order is 1, it is just a linear combination of lower terms
         coeffs = np.append(1.0, -1 / factorial(range(2, q_term_len + 1), exact=True))
 
         products = [[len(oc_q_term_list), q_term_idx]]
-        for prod_order in range(2, q_term_len + 1):
-            products.append([len(oc_q_term_list), oc_q_term_list.index((sym_index, prod_order))])
-
-        return [(coeffs, np.array(products))]
+        products.extend(
+            [
+                len(oc_q_term_list),
+                oc_q_term_list.index((sym_index, prod_order)),
+            ]
+            for prod_order in range(2, q_term_len + 1)
+        )
     else:
         # construct a list of products
         # need to consider all possible sub-multisets of the Multiset index in q_term
@@ -772,7 +768,8 @@ def _q_product_rule(q_term: Tuple, oc_q_term_list: List[Tuple]) -> List:
                 products.append(product)
 
         coeffs = np.ones(len(products), dtype=float)
-        return [(coeffs, np.array(products))]
+
+    return [(coeffs, np.array(products))]
 
 
 def _get_q_term_list(complete_index_multisets: List[Multiset]) -> List:
@@ -795,9 +792,7 @@ def _get_q_term_list(complete_index_multisets: List[Multiset]) -> List:
 
     q_terms = []
     for term in complete_index_multisets:
-        for order in range(len(term), 0, -1):
-            q_terms.append((term, order))
-
+        q_terms.extend((term, order) for order in range(len(term), 0, -1))
     return q_terms
 
 

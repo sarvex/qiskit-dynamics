@@ -71,10 +71,7 @@ class TestFixedStepBase(ABC, QiskitDynamicsTestCase):
         )
 
         def linear_rhs(t, y=None):
-            if y is None:
-                return self.linear_generator(t)
-            else:
-                return self.linear_generator(t) @ y
+            return self.linear_generator(t) if y is None else self.linear_generator(t) @ y
 
         self.linear_rhs = linear_rhs
 
@@ -103,10 +100,7 @@ class TestFixedStepBase(ABC, QiskitDynamicsTestCase):
         self.random_generator = random_generator
 
         def random_rhs(t, y=None):
-            if y is None:
-                return self.random_generator(t)
-            else:
-                return self.random_generator(t) @ y
+            return self.random_generator(t) if y is None else self.random_generator(t) @ y
 
         self.random_rhs = random_rhs
         self.rand_id = np.eye(dim, dtype=complex)

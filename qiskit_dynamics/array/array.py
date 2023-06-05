@@ -158,7 +158,7 @@ class Array(NDArrayOperatorsMixin):
 
     def __setattr__(self, name: str, value: Any):
         """Set attribute of wrapped array."""
-        if name in ("_data", "data", "_backend", "backend"):
+        if name in {"_data", "data", "_backend", "backend"}:
             super().__setattr__(name, value)
         else:
             setattr(self._data, name, value)
@@ -236,9 +236,7 @@ class Array(NDArrayOperatorsMixin):
             return obj._data
         if isinstance(obj, tuple):
             return tuple(cls._unwrap(i) for i in obj)
-        if isinstance(obj, list):
-            return list(cls._unwrap(i) for i in obj)
-        return obj
+        return [cls._unwrap(i) for i in obj] if isinstance(obj, list) else obj
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         """Dispatcher for NumPy ufuncs to support the wrapped array backend."""
@@ -265,11 +263,7 @@ class Array(NDArrayOperatorsMixin):
         result = dispatch_func(*inputs, **kwargs)
 
         # Not sure what this case from NumPy docs is?
-        if method == "at":
-            return None
-
-        # Wrap array results back into Array objects
-        return self._wrap(result, backend=self.backend)
+        return None if method == "at" else self._wrap(result, backend=self.backend)
 
     def __array_function__(self, func, types, args, kwargs):
         """Dispatcher for NumPy array function to support the wrapped :class:`Array` backend."""
@@ -278,8 +272,7 @@ class Array(NDArrayOperatorsMixin):
 
         # Unwrap function Array arguments
         args = self._unwrap(args)
-        out = kwargs.get("out", tuple())
-        if out:
+        if out := kwargs.get("out", tuple()):
             kwargs["out"] = self._unwrap(out)
 
         # Get implementation for backend

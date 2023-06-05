@@ -193,7 +193,7 @@ def parse_backend_hamiltonian_dict(
 
     # evaluate coefficients
     local_vars = {chan: 1.0 for chan in set(channels) if chan is not None}
-    local_vars.update(variables)
+    local_vars |= variables
 
     evaluated_ops = []
     for op, coeff in system:
@@ -222,7 +222,7 @@ def parse_backend_hamiltonian_dict(
                 reduced_channels.append(channel)
 
     # sort channels/operators according to channel ordering
-    if len(reduced_channels) > 0:
+    if reduced_channels:
         reduced_channels, hamiltonian_operators = zip(
             *sorted(zip(reduced_channels, hamiltonian_operators))
         )
@@ -287,9 +287,8 @@ def _hamiltonian_pre_parse_exceptions(hamiltonian_dict: dict):
 
                 # if starts with opening bracket, verify that it ends with closing bracket
                 if channel_str[1] == "{":
-                    if not channel_str[-1] == "}":
+                    if channel_str[-1] != "}":
                         raise QiskitError(malformed_text)
-                # otherwise verify that the remainder of terms only contains digits
                 elif any(not c.isdigit() for c in channel_str[1:]):
                     raise QiskitError(malformed_text)
             else:
@@ -300,6 +299,5 @@ def _hamiltonian_pre_parse_exceptions(hamiltonian_dict: dict):
                 if any(not c.isdigit() for c in channel_str[1:]):
                     raise QiskitError(malformed_text)
 
-        # if bars present but not in correct format, raise error
         elif term.count("|") != 0:
             raise QiskitError(malformed_text)

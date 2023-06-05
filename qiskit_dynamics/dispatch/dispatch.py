@@ -295,11 +295,10 @@ def asarray(
     """
     if backend:
         Dispatch.validate_backend(backend)
+    elif Dispatch.DEFAULT_BACKEND:
+        backend = Dispatch.DEFAULT_BACKEND
     else:
-        if Dispatch.DEFAULT_BACKEND:
-            backend = Dispatch.DEFAULT_BACKEND
-        else:
-            backend = Dispatch.backend(array, fallback="numpy")
+        backend = Dispatch.backend(array, fallback="numpy")
     return Dispatch.ASARRAY_DISPATCH[backend](array, dtype=dtype, order=order)
 
 

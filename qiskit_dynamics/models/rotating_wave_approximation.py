@@ -173,10 +173,7 @@ def rotating_wave_approximation(
             in_frame_basis=model.in_frame_basis,
             evaluation_mode=model.evaluation_mode,
         )
-        if return_signal_map:
-            return rwa_model, get_rwa_signals
-        return rwa_model
-
+        return (rwa_model, get_rwa_signals) if return_signal_map else rwa_model
     elif isinstance(model, LindbladModel):
         if model.signals[0] is None and model.hamiltonian_operators is not None:
             raise ValueError("Model must have nontrivial Hamiltonian signals to perform the RWA.")

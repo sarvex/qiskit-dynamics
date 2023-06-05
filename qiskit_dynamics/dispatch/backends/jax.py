@@ -73,9 +73,7 @@ try:
         if method != "__call__":
             return NotImplemented
         name = ufunc.__name__
-        if hasattr(jax.numpy, name):
-            return getattr(jax.numpy, name)
-        return NotImplemented
+        return getattr(jax.numpy, name) if hasattr(jax.numpy, name) else NotImplemented
 
     @Dispatch.register_array_function("jax")
     def _jax_array_function(func):

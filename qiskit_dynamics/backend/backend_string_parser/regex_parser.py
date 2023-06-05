@@ -89,18 +89,12 @@ class _HamiltonianParser:
         for ham in self.h_str:
             if len(re.findall(r"\|\|", ham)) > 1:
                 raise Exception(f"Multiple time-dependent terms in {ham}")
-            p_td = re.search(r"(?P<opr>[\S]+)\|\|(?P<ch>[\S]+)", ham)
-
-            # find time-dependent term
-            if p_td:
-                coef, token = self._tokenizer(p_td.group("opr"), qubit_list)
+            if p_td := re.search(r"(?P<opr>[\S]+)\|\|(?P<ch>[\S]+)", ham):
+                coef, token = self._tokenizer(p_td["opr"], qubit_list)
                 if token is None:
                     continue
                 # combine coefficient to time-dependent term
-                if coef:
-                    td = "*".join([coef, p_td.group("ch")])
-                else:
-                    td = p_td.group("ch")
+                td = "*".join([coef, p_td["ch"]]) if coef else p_td["ch"]
                 token = self._shunting_yard(token)
                 _td = self._token2qobj(token), td
 
@@ -157,10 +151,7 @@ class _HamiltonianParser:
                     for p in re.finditer(r"\{(?P<op_str>[a-z0-9*/+-]+)\}", trg_s):
                         if p.group() not in pattern:
                             sub = parse_binop(p.group("op_str"), operands={itr: str(kk)})
-                            if sub.isdecimal():
-                                pattern[p.group()] = sub
-                            else:
-                                pattern[p.group()] = f"{{{sub}}}"
+                            pattern[p.group()] = sub if sub.isdecimal() else f"{{{sub}}}"
                     for key, val in pattern.items():
                         trg_s = trg_s.replace(key, val)
                     _temp.append(
@@ -183,8 +174,7 @@ class _HamiltonianParser:
         prev = "none"
         while any(_op_str):
             for key, parser in _HamiltonianParser.str_elements.items():
-                p = parser.match(_op_str)
-                if p:
+                if p := parser.match(_op_str):
                     # find quantum operators
                     if key in ["QubOpr", "CavOpr"]:
                         _key = key
@@ -310,10 +300,7 @@ def math_priority(o1, o2):
     rank = {"MathUnitary": 2, "MathOrd0": 1, "MathOrd1": 0}
     diff_ops = rank.get(o1.type, -1) - rank.get(o2.type, -1)
 
-    if diff_ops > 0:
-        return False
-    else:
-        return True
+    return diff_ops <= 0
 
 
 # pylint: disable=dangerous-default-value
@@ -328,42 +315,44 @@ def parse_binop(op_str, operands={}, cast_str=True):
     )
 
     for key, regr in oprs.items():
-        p = re.match(regr, op_str)
-        if p:
-            val0 = operands.get(p.group("v0"), p.group("v0"))
-            if key == "non":
+        if p := re.match(regr, op_str):
+            val0 = operands.get(p["v0"], p["v0"])
+            if key == "div":
+                val1 = operands.get(p["v1"], p["v1"])
+                retv = (
+                    int(val0) / int(val1)
+                    if val0.isdecimal() and val1.isdecimal()
+                    else "/".join([str(val0), str(val1)])
+                )
+            elif key == "mul":
+                val1 = operands.get(p["v1"], p["v1"])
+                retv = (
+                    int(val0) * int(val1)
+                    if val0.isdecimal() and val1.isdecimal()
+                    else "*".join([str(val0), str(val1)])
+                )
+            elif key == "non":
                 # substitution
                 retv = val0
+            elif key == "sub":
+                val1 = operands.get(p["v1"], p["v1"])
+                retv = (
+                    int(val0) - int(val1)
+                    if val0.isdecimal() and val1.isdecimal()
+                    else "-".join([str(val0), str(val1)])
+                )
+            elif key == "sum":
+                val1 = operands.get(p["v1"], p["v1"])
+                retv = (
+                    int(val0) + int(val1)
+                    if val0.isdecimal() and val1.isdecimal()
+                    else "+".join([str(val0), str(val1)])
+                )
             else:
-                val1 = operands.get(p.group("v1"), p.group("v1"))
-                # binary operation
-                if key == "sum":
-                    if val0.isdecimal() and val1.isdecimal():
-                        retv = int(val0) + int(val1)
-                    else:
-                        retv = "+".join([str(val0), str(val1)])
-                elif key == "sub":
-                    if val0.isdecimal() and val1.isdecimal():
-                        retv = int(val0) - int(val1)
-                    else:
-                        retv = "-".join([str(val0), str(val1)])
-                elif key == "mul":
-                    if val0.isdecimal() and val1.isdecimal():
-                        retv = int(val0) * int(val1)
-                    else:
-                        retv = "*".join([str(val0), str(val1)])
-                elif key == "div":
-                    if val0.isdecimal() and val1.isdecimal():
-                        retv = int(val0) / int(val1)
-                    else:
-                        retv = "/".join([str(val0), str(val1)])
-                else:
-                    retv = 0
+                val1 = operands.get(p["v1"], p["v1"])
+                retv = 0
             break
     else:
         raise Exception(f"Invalid string {op_str}")
 
-    if cast_str:
-        return str(retv)
-    else:
-        return retv
+    return str(retv) if cast_str else retv

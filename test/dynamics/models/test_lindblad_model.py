@@ -292,10 +292,12 @@ class TestLindbladModel(QiskitDynamicsTestCase):
         rand_ham_carriers = Array(rng.uniform(low=-b, high=b, size=(num_ham)))
         rand_ham_phases = Array(rng.uniform(low=-b, high=b, size=(num_ham)))
 
-        ham_sigs = []
-        for coeff, freq, phase in zip(rand_ham_coeffs, rand_ham_carriers, rand_ham_phases):
-            ham_sigs.append(Signal(coeff, freq, phase))
-
+        ham_sigs = [
+            Signal(coeff, freq, phase)
+            for coeff, freq, phase in zip(
+                rand_ham_coeffs, rand_ham_carriers, rand_ham_phases
+            )
+        ]
         ham_sigs = SignalList(ham_sigs)
 
         # generate random static dissipators
@@ -317,10 +319,12 @@ class TestLindbladModel(QiskitDynamicsTestCase):
         rand_diss_carriers = Array(rng.uniform(low=-b, high=b, size=(num_diss)))
         rand_diss_phases = Array(rng.uniform(low=-b, high=b, size=(num_diss)))
 
-        diss_sigs = []
-        for coeff, freq, phase in zip(rand_diss_coeffs, rand_diss_carriers, rand_diss_phases):
-            diss_sigs.append(Signal(coeff, freq, phase))
-
+        diss_sigs = [
+            Signal(coeff, freq, phase)
+            for coeff, freq, phase in zip(
+                rand_diss_coeffs, rand_diss_carriers, rand_diss_phases
+            )
+        ]
         diss_sigs = SignalList(diss_sigs)
 
         # random anti-hermitian frame operator

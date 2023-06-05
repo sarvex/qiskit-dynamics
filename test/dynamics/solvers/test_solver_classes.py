@@ -927,11 +927,7 @@ class TestPulseSimulation(QiskitDynamicsTestCase):
         sig1 = DiscreteSignal(dt=0.1, samples=samples1, carrier_freq=3.1)
 
         signals = None
-        if "lindblad" in model:
-            signals = ([sig0], [sig1])
-        else:
-            signals = [sig0, sig1]
-
+        signals = ([sig0], [sig1]) if "lindblad" in model else [sig0, sig1]
         self._compare_schedule_to_signals(
             solver=getattr(self, model),
             t_span=[0.0, 1.5],

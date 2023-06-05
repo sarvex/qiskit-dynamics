@@ -634,10 +634,10 @@ class TestDenseVectorizedLindbladCollection(QiskitDynamicsTestCase):
     def test_empty_collection_error(self):
         """Test errors get raised for empty collection."""
         collection = self.vectorized_class()
-        with self.assertRaisesRegex(QiskitError, self.vectorized_class.__name__ + " with None"):
+        with self.assertRaisesRegex(QiskitError, f"{self.vectorized_class.__name__} with None"):
             collection(None, None, np.array([[1.0, 0.0], [0.0, 0.0]]))
 
-        with self.assertRaisesRegex(QiskitError, self.vectorized_class.__name__ + " with None"):
+        with self.assertRaisesRegex(QiskitError, f"{self.vectorized_class.__name__} with None"):
             collection.evaluate_hamiltonian(None)
 
     def test_consistency_all_terms(self):

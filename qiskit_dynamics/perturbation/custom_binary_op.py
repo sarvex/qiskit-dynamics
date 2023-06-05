@@ -190,11 +190,10 @@ def _compile_custom_operation_rule(
                                    unique products for implementing the custom dot rule.
     """
 
-    # force numpy usage for algebra specification
-    new_rule = []
-    for coeffs, index_pairs in operation_rule:
-        new_rule.append((np.array(coeffs), np.array(index_pairs, dtype=int) + index_offset))
-
+    new_rule = [
+        (np.array(coeffs), np.array(index_pairs, dtype=int) + index_offset)
+        for coeffs, index_pairs in operation_rule
+    ]
     operation_rule = tuple(new_rule)
 
     # construct list of unique multiplications and linear combo rule
